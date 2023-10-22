@@ -1,0 +1,17 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/Users/jungcow/catkin_ws/devel/include/**",
+        "/Users/jungcow/miniconda3/envs/ros_env/include/**",
+        "/Users/jungcow/catkin_ws/src/my_first_service/include/**"
+      ],
+      "name": "ROS"
+    }
+  ],
+  "version": 4
+}

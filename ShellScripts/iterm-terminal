@@ -1,0 +1,6 @@
+#! /bin/bash
+
+osascript \
+	-e 'tell application "iTerm2" to activate' \
+	-e 'tell application "iTerm2" to set newWindow to (create window with default profile)' \
+	-e "tell application \"iTerm2\" to tell current session of newWindow to write text \"${@}\" "

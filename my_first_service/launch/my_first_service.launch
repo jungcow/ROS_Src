@@ -1,0 +1,12 @@
+<launch>
+	<arg name="a" default="10" />
+	<arg name="b" default="5" />
+	<arg name="g_operator" default="3" />
+
+	<node pkg="my_first_service" type="service_server" name="service_server" output="screen" />
+	
+	<param name="calculation_method" type="int" value="$(arg g_operator)" />
+
+	<node pkg="my_first_service" type="service_client" name="service_client" args="$(arg a) $(arg b)" output="screen" />
+
+</launch>
