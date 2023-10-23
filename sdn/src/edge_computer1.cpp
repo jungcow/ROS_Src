@@ -180,18 +180,21 @@ private:
 	};
 
 private:
-	std::unique_ptr<ActionManager> action_manager_;
+	// std::unique_ptr<ActionManager> action_manager_;
+	unordered_map<int, std::unique_ptr<ActionManager> > action_manager_map_;
 
 public:
 	void sendCommand(const string &command, const string &actionname, int vid)
 	{
-		action_manager_ = std::make_unique<ActionManager>(actionname, vid);
-		action_manager_->sendGoal(command, this);
+		// action_manager_ = std::make_unique<ActionManager>(actionname, vid);
+		// action_manager_->sendGoal(command, this);
+		action_manager_map_[vid] = std::make_unique<ActionManager>(actionname, vid);
+		action_manager_map_[vid]->sendGoal(command, this);
 	}
 
 	void sendCommandAll(void)
 	{
-		// ROS_INFO("command queue size: [%lu]", vehicle_command_queue_.size());
+		ROS_INFO("command queue size: [%lu]", vehicle_command_queue_.size());
 		while (!vehicle_command_queue_.empty())
 		{
 			int vid = vehicle_command_queue_.front();
