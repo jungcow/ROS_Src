@@ -31,6 +31,7 @@ add_service_files(
   CheckNextHop.srv
   DelConn.srv
   StateInfo.srv
+  ReqFlowTable.srv
   )
 
 ## Generate actions in the 'action' folder
@@ -69,23 +70,17 @@ target_link_libraries(vehicle
 	${catkin_LIBRARIES}
 )
 
-add_executable(edge_computer1 src/edge_computer1.cpp)
-add_dependencies(edge_computer1 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(edge_computer1
+add_executable(edge_computer src/edge_computer.cpp)
+add_dependencies(edge_computer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(edge_computer
 	${catkin_LIBRARIES}
 )
 
-# add_executable(edge_computer2 src/edge_computer2.cpp)
-# add_dependencies(edge_computer2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(edge_computer2
-# 	${catkin_LIBRARIES}
-# )
-
-# add_executable(controller src/controller.cpp)
-# add_dependencies(controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(controller
-# 	${catkin_LIBRARIES}
-# )
+add_executable(controller src/controller.cpp)
+add_dependencies(controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(controller
+	${catkin_LIBRARIES}
+)
 
 # add_executable(app_path_planning src/app_path_planning.cpp)
 # add_dependencies(app_path_planning ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

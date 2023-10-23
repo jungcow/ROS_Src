@@ -23,12 +23,11 @@ public:
 		VS_READYTO_COMMAND,
 		VS_COMMAND,
 		VS_REQ_NEXT_HOP,
-		VS_DEL_PREV_HOP
+		VS_EXIT
 	};
 
 private:
 	ros::NodeHandle nh_;
-	// ros::Publisher vstate_pub_;
 	ros::ServiceClient vstate_client_;
 	ros::ServiceClient connection_client_;
 	ros::Rate loop_rate_ = 1;
@@ -39,11 +38,14 @@ private:
 	int vid_;
 	bool vehicle_command_completed = false;
 	bool vehicle_command_running = false;
+	bool connection_success_ = false;
 	State vstate_ = VS_NEW;
+	string name_;
 
 public:
 	Vehicle(int vid, int currhop, int dst, int prevhop) : vid_(vid), currhop_(currhop), prevhop_(prevhop), destination_(dst)
 	{
+		name_ = string("[vehicle[") + to_string(vid) + string("]");
 	}
 
 	void sleepForLoopRate(void)
@@ -71,7 +73,7 @@ public:
 		vehicle_command_running = b;
 	}
 
-	int getCurrenthop(void) const
+	int getCurrhop(void) const
 	{
 		return currhop_;
 	}
@@ -81,9 +83,38 @@ public:
 		return nexthop_;
 	}
 
+	int getPrevhop(void) const
+	{
+		return prevhop_;
+	}
 	int getState(void) const
 	{
 		return vstate_;
+	}
+
+	int getDestination(void) const
+	{
+		return destination_;
+	}
+
+	const string& getName(void) const
+	{
+		return name_;
+	}
+
+	void setCurrhop(int hop)
+	{
+		currhop_ = hop;
+	}
+
+	void setNexthop(int hop)
+	{
+		nexthop_ = hop;
+	}
+
+	void setPrevhop(int hop)
+	{
+		prevhop_ = hop;
 	}
 
 	void setState(State vstate)
@@ -99,7 +130,7 @@ public:
 		sstream << hop;
 		string str("new_connection_");
 		str = str + sstream.str();
-		ROS_INFO("str: %s", str.c_str());
+		ROS_INFO("%s str: %s", name_.c_str(), str.c_str());
 		connection_client_ = nh_.serviceClient<sdn::NewConn>(str.c_str());
 	}
 
@@ -113,7 +144,7 @@ public:
 
 		if (connection_client_.call(srv))
 		{
-			ROS_INFO("next hop: %d", srv.response.next_hop_ip);
+			ROS_INFO("%s next hop: %d", name_.c_str(), srv.response.next_hop_ip);
 			nexthop_ = srv.response.next_hop_ip;
 		}
 		else
@@ -136,11 +167,11 @@ public:
 
 		if (vstate_client_.call(srv))
 		{
-			ROS_INFO("stateinfo server status: [OK]");
+			ROS_INFO("%s stateinfo server status: [OK]", name_.c_str());
 		}
 		else
 		{
-			ROS_ERROR("stateinfo server status: [FAILED]");
+			ROS_ERROR("%s stateinfo server status: [FAILED]", name_.c_str());
 			return false;
 		}
 		return true;
@@ -150,14 +181,14 @@ public:
 	{
 		ros::Rate r(1);
 		sdn::VehicleCommandFeedback feedback;
-		ROS_INFO("%s : Executing, %s", action_name_.c_str(), goal->command.c_str());
+		ROS_INFO("%s %s : Executing, %s", name_.c_str(), action_name_.c_str(), goal->command.c_str());
 
 		int count = 0;
 		while (count++ < 10)
 		{
 			feedback.vehicle_gps = "GPS data " + to_string(count);
 			feedback.vehicle_controlinfo = "Control data " + to_string(count);
-			ROS_INFO("publish feedback [%d]", count);
+			ROS_INFO("%s publish feedback [%d]", name_.c_str(), count);
 			server_->publishFeedback(feedback);
 			r.sleep();
 		}
@@ -171,7 +202,7 @@ public:
 	{
 		string commandname = "command_";
 		action_name_ = commandname + to_string(hop) + "_to_" + to_string(vid_);
-		ROS_INFO("Vehicle Command Action Name: [%s]", action_name_.c_str());
+		ROS_INFO("%s Vehicle Command Action Name: [%s]", name_.c_str(), action_name_.c_str());
 		server_ = make_unique<Server>(nh_,
 									  action_name_,
 									  boost::bind(&Vehicle::executeCallback, this, _1),
@@ -194,36 +225,41 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	int vid = atoi(argv[1]);
 	int start = atoi(argv[2]);
 	int dst = atoi(argv[3]);
 	int prevhop = atoi(argv[4]);
-	Vehicle vehicle(1, start, dst, prevhop);
+	Vehicle vehicle(vid, start, dst, prevhop);
 
-	while (ros::ok())
+	while (ros::ok() && vehicle.getCurrhop() != vehicle.getDestination())
 	{
+		ROS_INFO(
+			"Vehicle Created: [vid: %d], [prevhop_: %d],[currhop_: %d], [nexthop_: %d],[src: %d], [dest: %d] ",
+			vid,
+			vehicle.getPrevhop(), vehicle.getCurrhop(), vehicle.getNexthop(), start, dst);
 		switch (vehicle.getState())
 		{
 		case Vehicle::VS_NEW:
 		{
-			ROS_INFO("Vehicle enter new connection");
-			vehicle.connectEdgecomputer(vehicle.getCurrenthop());
+			ROS_INFO("%s Vehicle enter new connection", vehicle.getName().c_str());
+			vehicle.connectEdgecomputer(vehicle.getCurrhop());
 			vehicle.requestNexthop(argv);
 			vehicle.setState(Vehicle::VS_READYTO_COMMAND);
 			break;
 		}
 		case Vehicle::VS_READYTO_COMMAND:
 		{
-			ROS_INFO("Vehicle ready to perform command");
+			ROS_INFO("%s Vehicle ready to perform command", vehicle.getName().c_str());
 			vehicle.sendStateinfo();
 			vehicle.setState(Vehicle::VS_COMMAND);
 			break;
 		}
 		case Vehicle::VS_COMMAND:
 		{
-			ROS_INFO("Vehicle is performing command");
+			ROS_INFO("%s Vehicle is performing command", vehicle.getName().c_str());
 			if (!vehicle.isVehicleCommandRunning())
 			{
-				vehicle.advertiseCommandAction(vehicle.getCurrenthop());
+				vehicle.advertiseCommandAction(vehicle.getCurrhop());
 				vehicle.setVehicleCommandRunning(true);
 			}
 			if (vehicle.isVehicleCommandCompleted())
@@ -237,12 +273,16 @@ int main(int argc, char** argv)
 		}
 		case Vehicle::VS_REQ_NEXT_HOP:
 		{
-			ROS_INFO("Vehicle is going to connect to next hop");
-			
+			ROS_INFO("%s Vehicle is going to connect to next hop", vehicle.getName().c_str());
+			vehicle.setPrevhop(vehicle.getCurrhop());
+			vehicle.setCurrhop(vehicle.getNexthop());
+			vehicle.setState(Vehicle::VS_NEW);
+			break;
 		}
 		default:
 			return 0;
 		}
 		vehicle.sleepForLoopRate();
 	}
+	ROS_INFO("%s Arrived Successfully!", vehicle.getName().c_str());
 }

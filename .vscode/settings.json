@@ -71,6 +71,7 @@
         "mutex": "cpp",
         "ostream": "cpp",
         "streambuf": "cpp",
-        "system_error": "cpp"
+        "system_error": "cpp",
+        "filesystem": "cpp"
     }
 }
