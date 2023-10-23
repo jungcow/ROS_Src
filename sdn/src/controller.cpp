@@ -55,14 +55,14 @@ private:
 		map_[4][p41[2]] = 1;
 		map_[4][p47[2]] = 7;
 
-		int p51[] = {1, 4};
 		int p52[] = {2, 3};
+		int p54[] = {1, 4};
 		int p56[] = {6, 9};
 		int p58[] = {7, 8};
 		for (int i = 0; i < 2; i++)
 		{
-			map_[5][p51[i]] = 1;
 			map_[5][p52[i]] = 2;
+			map_[5][p54[i]] = 4;
 			map_[5][p56[i]] = 6;
 			map_[5][p58[i]] = 8;
 		}
@@ -74,10 +74,10 @@ private:
 		{
 			map_[6][p63[i]] = 3;
 			map_[6][p65[i]] = 5;
-			map_[6][p67[i]] = 7;
+			map_[6][p67[i]] = 9;
 		}
 		map_[6][p63[2]] = 3;
-		map_[6][p67[2]] = 7;
+		map_[6][p67[2]] = 9;
 
 		int p74[] = {1, 2, 4, 5};
 		int p78[] = {3, 6, 8, 9};
@@ -105,6 +105,10 @@ private:
 		{
 			map_[9][p96[i]] = 6;
 			map_[9][p98[i]] = 8;
+		}
+		for (int i = 1; i <= 9; i++)
+		{
+			map_[i][i] = 0;
 		}
 	}
 
@@ -136,7 +140,7 @@ bool setFlowTable(sdn::ReqFlowTable::Request &req,
 	ROS_INFO("Get EdgeComputer id: [%d]", req.ecid);
 	res.size = 8;
 	int(*m)[100][100] = Controller::instance().getMap();
-	for (int i = 1; i <= 8; i++)
+	for (int i = 1; i <= 9; i++)
 		res.flow_table[i] = (*m)[req.ecid][i];
 	return true;
 }

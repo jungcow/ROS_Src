@@ -4,11 +4,11 @@
     <node pkg="sdn" type="edge_computer" name="edge_computer2" args="2" output="screen"/>
     <node pkg="sdn" type="edge_computer" name="edge_computer3" args="3" output="screen"/>
     <node pkg="sdn" type="edge_computer" name="edge_computer4" args="4" output="screen"/>
-    <node pkg="sdn" type="vehicle" name="vehicle1" args="1 1 6 0" output="screen"/>
-    <!-- <node pkg="sdn" type="vehicle" name="vehicle2" args="2 2 4 0" output="screen"/> -->
-    <!-- <node pkg="sdn" type="edge_computer" name="edge_computer5" args="5" output="screen"/>
+    <node pkg="sdn" type="edge_computer" name="edge_computer5" args="5" output="screen"/>
     <node pkg="sdn" type="edge_computer" name="edge_computer6" args="6" output="screen"/>
     <node pkg="sdn" type="edge_computer" name="edge_computer7" args="7" output="screen"/>
     <node pkg="sdn" type="edge_computer" name="edge_computer8" args="8" output="screen"/>
-    <node pkg="sdn" type="edge_computer" name="edge_computer9" args="9" output="screen"/> -->
+    <node pkg="sdn" type="edge_computer" name="edge_computer9" args="9" output="screen"/>
+    <node pkg="sdn" type="vehicle" name="vehicle1" args="1 1 6 0" output="screen"/>
+    <node pkg="sdn" type="vehicle" name="vehicle2" args="2 6 7 0" output="screen"/>
 </launch>

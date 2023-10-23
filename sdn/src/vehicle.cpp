@@ -30,7 +30,7 @@ private:
 	ros::NodeHandle nh_;
 	ros::ServiceClient vstate_client_;
 	ros::ServiceClient connection_client_;
-	ros::Rate loop_rate_ = 1;
+	ros::Rate loop_rate_ = 4;
 	int currhop_;
 	int prevhop_;
 	int nexthop_ = 1;
