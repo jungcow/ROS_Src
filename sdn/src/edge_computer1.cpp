@@ -38,6 +38,7 @@ private:
 	unordered_map<int, VehicleInfo> vehicles_infos_;
 	vector<ros::Subscriber> vehicles_state_subscribers;
 	queue<int> vehicle_command_queue_;
+	queue<int> vehicle_command_done_queue_;
 	unordered_map<int, int> lutable_;
 	ros::ServiceServer conn_service_;
 	ros::ServiceServer vstate_service_;
@@ -132,6 +133,11 @@ public:
 		vehicle_command_queue_.push(vid);
 	}
 
+	void pushVehicleCommandDoneQueue(int vid)
+	{
+		vehicle_command_done_queue_.push(vid);
+	}
+
 private:
 	class ActionManager
 	{
@@ -171,6 +177,7 @@ private:
 			if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
 			{
 				ROS_INFO("Command completed: %s", result->command_completed ? "Yes" : "No");
+				EdgeComputer::instance().pushVehicleCommandDoneQueue(vid);
 			}
 			else
 			{
@@ -180,14 +187,16 @@ private:
 	};
 
 private:
-	// std::unique_ptr<ActionManager> action_manager_;
 	unordered_map<int, std::unique_ptr<ActionManager> > action_manager_map_;
 
 public:
+	void deleteActionManager(int vid)
+	{
+		action_manager_map_.erase(vid);
+	}
+
 	void sendCommand(const string &command, const string &actionname, int vid)
 	{
-		// action_manager_ = std::make_unique<ActionManager>(actionname, vid);
-		// action_manager_->sendGoal(command, this);
 		action_manager_map_[vid] = std::make_unique<ActionManager>(actionname, vid);
 		action_manager_map_[vid]->sendGoal(command, this);
 	}
@@ -195,6 +204,12 @@ public:
 	void sendCommandAll(void)
 	{
 		ROS_INFO("command queue size: [%lu]", vehicle_command_queue_.size());
+		while (!vehicle_command_done_queue_.empty())
+		{
+			int vid = vehicle_command_done_queue_.front();
+			vehicle_command_done_queue_.pop();
+			deleteActionManager(vid);
+		}
 		while (!vehicle_command_queue_.empty())
 		{
 			int vid = vehicle_command_queue_.front();

@@ -238,7 +238,7 @@ int main(int argc, char** argv)
 		case Vehicle::VS_REQ_NEXT_HOP:
 		{
 			ROS_INFO("Vehicle is going to connect to next hop");
-			ros::spin();
+			
 		}
 		default:
 			return 0;
