@@ -37,7 +37,8 @@ private:
 	int nexthop_ = 1;
 	int destination_;
 	int vid_;
-	bool action_result_ = false;
+	bool vehicle_command_completed = false;
+	bool vehicle_command_running = false;
 	State vstate_ = VS_NEW;
 
 public:
@@ -45,9 +46,29 @@ public:
 	{
 	}
 
-	bool getActionCommandResult(void) const
+	void sleepForLoopRate(void)
 	{
-		return action_result_;
+		loop_rate_.sleep();
+	}
+
+	bool isVehicleCommandCompleted(void) const
+	{
+		return vehicle_command_completed;
+	}
+
+	void setVehicleCommandCompleted(bool b)
+	{
+		vehicle_command_completed = b;
+	}
+
+	bool isVehicleCommandRunning(void) const
+	{
+		return vehicle_command_running;
+	}
+
+	void setVehicleCommandRunning(bool b)
+	{
+		vehicle_command_running = b;
 	}
 
 	int getCurrenthop(void) const
@@ -142,6 +163,7 @@ public:
 		}
 		sdn::VehicleCommandResult result;
 		result.command_completed = true;
+		vehicle_command_completed = true;
 		server_->setSucceeded(result);
 	}
 
@@ -199,17 +221,28 @@ int main(int argc, char** argv)
 		case Vehicle::VS_COMMAND:
 		{
 			ROS_INFO("Vehicle is performing command");
-			vehicle.advertiseCommandAction(vehicle.getCurrenthop());
-			vehicle.setState(Vehicle::VS_REQ_NEXT_HOP);
-			ros::spin();
+			if (!vehicle.isVehicleCommandRunning())
+			{
+				vehicle.advertiseCommandAction(vehicle.getCurrenthop());
+				vehicle.setVehicleCommandRunning(true);
+			}
+			if (vehicle.isVehicleCommandCompleted())
+			{
+				vehicle.setState(Vehicle::VS_REQ_NEXT_HOP);
+				vehicle.setVehicleCommandCompleted(false);
+				vehicle.setVehicleCommandRunning(false);
+			}
+			ros::spinOnce();
 			break;
 		}
 		case Vehicle::VS_REQ_NEXT_HOP:
 		{
 			ROS_INFO("Vehicle is going to connect to next hop");
+			ros::spin();
 		}
 		default:
 			return 0;
 		}
+		vehicle.sleepForLoopRate();
 	}
 }
