@@ -1,0 +1,6 @@
+string command
+---
+bool command_completed
+---
+string vehicle_gps
+string vehicle_controlinfo

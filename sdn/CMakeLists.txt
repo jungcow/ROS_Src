@@ -21,21 +21,22 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   GpsInfo.msg
-)
-
-## Generate services in the 'srv' folder
+  )
+  
+  ## Generate services in the 'srv' folder
 add_service_files(
   FILES
   NewConn.srv
   RegisterDest.srv
   CheckNextHop.srv
   DelConn.srv
-)
+  StateInfo.srv
+  )
 
 ## Generate actions in the 'action' folder
 add_action_files(
   FILES
-  # Command.action
+  VehicleCommand.action
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -58,7 +59,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 

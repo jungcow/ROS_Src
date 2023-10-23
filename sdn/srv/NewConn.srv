@@ -1,5 +1,6 @@
 int32 vid
 int32 src
 int32 dst
+int32 prev_hop_ip
 ---
 int32 next_hop_ip

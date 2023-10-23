@@ -1,0 +1,4 @@
+int32 vid
+int32 vstate
+---
+bool status

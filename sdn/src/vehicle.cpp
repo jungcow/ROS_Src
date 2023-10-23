@@ -1,9 +1,16 @@
+
+#include <actionlib/server/simple_action_server.h>
+
 #include <cstdlib>
+#include <memory>
 #include <sstream>
+#include <string>
 
 #include "ros/ros.h"
 #include "sdn/GpsInfo.h"
 #include "sdn/NewConn.h"
+#include "sdn/StateInfo.h"
+#include "sdn/VehicleCommandAction.h"
 
 using namespace std;
 
@@ -13,8 +20,7 @@ public:
 	enum State
 	{
 		VS_NEW,
-		G_ADVERTISE_GPS_MSG,
-		G_REGISTER_COMMAND_SRV,
+		VS_READYTO_COMMAND,
 		VS_COMMAND,
 		VS_REQ_NEXT_HOP,
 		VS_DEL_PREV_HOP
@@ -22,42 +28,49 @@ public:
 
 private:
 	ros::NodeHandle nh_;
-	ros::Publisher gps_pub_;
-	ros::ServiceClient command_client_;
+	// ros::Publisher vstate_pub_;
+	ros::ServiceClient vstate_client_;
 	ros::ServiceClient connection_client_;
 	ros::Rate loop_rate_ = 1;
 	int currhop_;
+	int prevhop_;
+	int nexthop_ = 1;
 	int destination_;
 	int vid_;
-	int nexthop_ = 1;
+	bool action_result_ = false;
 	State vstate_ = VS_NEW;
 
 public:
-	Vehicle(int vid, int currhop, int dst) : vid_(vid), currhop_(currhop), destination_(dst)
+	Vehicle(int vid, int currhop, int dst, int prevhop) : vid_(vid), currhop_(currhop), prevhop_(prevhop), destination_(dst)
 	{
 	}
 
-	int get_currenthop(void) const
+	bool getActionCommandResult(void) const
+	{
+		return action_result_;
+	}
+
+	int getCurrenthop(void) const
 	{
 		return currhop_;
 	}
 
-	int get_nexthop(void) const
+	int getNexthop(void) const
 	{
 		return nexthop_;
 	}
 
-	int get_state(void) const
+	int getState(void) const
 	{
 		return vstate_;
 	}
 
-	void set_state(State vstate)
+	void setState(State vstate)
 	{
 		vstate_ = vstate;
 	}
 
-	void connect_edgecomputer(int hop)
+	void connectEdgecomputer(int hop)
 	{
 		std::stringstream sstream;
 
@@ -69,12 +82,13 @@ public:
 		connection_client_ = nh_.serviceClient<sdn::NewConn>(str.c_str());
 	}
 
-	bool request_nexthop(char **argv)
+	bool requestNexthop(char** argv)
 	{
 		sdn::NewConn srv;
 		srv.request.vid = atoi(argv[1]);
 		srv.request.src = atoi(argv[2]);
 		srv.request.dst = atoi(argv[3]);
+		srv.request.prev_hop_ip = atoi(argv[4]);
 
 		if (connection_client_.call(srv))
 		{
@@ -89,90 +103,110 @@ public:
 		return true;
 	}
 
-	void advertise_gpsinfo(int qsize)
+	bool sendStateinfo(void)
 	{
-		std::stringstream sstream;
+		string str = "state_info_";
+		str = str + to_string(currhop_);
+		vstate_client_ = nh_.serviceClient<sdn::StateInfo>(str.c_str());
 
-		sstream.str("");
-		sstream << vid_;
-		string str("gps_info_");
-		str = str + sstream.str();
-		gps_pub_ = nh_.advertise<sdn::GpsInfo>(str.c_str(), qsize);
+		sdn::StateInfo srv;
+		srv.request.vid = vid_;
+		srv.request.vstate = getState();
+
+		if (vstate_client_.call(srv))
+		{
+			ROS_INFO("stateinfo server status: [OK]");
+		}
+		else
+		{
+			ROS_ERROR("stateinfo server status: [FAILED]");
+			return false;
+		}
+		return true;
 	}
 
-	// void set_command_srv_client(int hop)
-	// {
-	// 	stringstream strstream;
-	// 	strstream.str("command_");
-	// 	strstream << currhop_;
-	// 	command_client_ = nh_.serviceClient<sdn::Command>(strstream.str().c_str());
-	// }
-
-	void publish_gpsinfo(void)
+	void executeCallback(const sdn::VehicleCommandGoalConstPtr& goal)
 	{
-		sdn::GpsInfo gps_info;
-		gps_info.gpsinfo = "[GPS Data]";
-		// gps_info.latitude = 10.;
-		// gps_info.longitude = 10.;
-		// gps_info.altitude = 10.;
+		ros::Rate r(1);
+		sdn::VehicleCommandFeedback feedback;
+		ROS_INFO("%s : Executing, %s", action_name_.c_str(), goal->command.c_str());
 
-		// ROS_INFO("latitude: %lf, longitude: %lf, altitude: %lf",
-		// 		 gps_info.latitude, gps_info.longitude, gps_info.altitude);
-		ROS_INFO("publish data : %s", gps_info.gpsinfo.c_str());
-
-		gps_pub_.publish(gps_info);
-		ros::spinOnce();
-		loop_rate_.sleep();
+		int count = 0;
+		while (count++ < 10)
+		{
+			feedback.vehicle_gps = "GPS data " + to_string(count);
+			feedback.vehicle_controlinfo = "Control data " + to_string(count);
+			ROS_INFO("publish feedback [%d]", count);
+			server_->publishFeedback(feedback);
+			r.sleep();
+		}
+		sdn::VehicleCommandResult result;
+		result.command_completed = true;
+		server_->setSucceeded(result);
 	}
+
+	void advertiseCommandAction(int hop)
+	{
+		string commandname = "command_";
+		action_name_ = commandname + to_string(hop) + "_to_" + to_string(vid_);
+		ROS_INFO("Vehicle Command Action Name: [%s]", action_name_.c_str());
+		server_ = make_unique<Server>(nh_,
+									  action_name_,
+									  boost::bind(&Vehicle::executeCallback, this, _1),
+									  false);
+		server_->start();
+	}
+
+private:
+	typedef actionlib::SimpleActionServer<sdn::VehicleCommandAction> Server;
+	std::string action_name_;
+	std::unique_ptr<Server> server_;
 };
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "local_sdn1");
-	if (argc != 4)
+	ros::init(argc, argv, "vehicle1");
+	if (argc != 5)
 	{
-		ROS_INFO("usage: vehicle_id src dst");
+		ROS_INFO("usage: vehicle_id src dst prev_hop");
 		return 1;
 	}
 
 	int start = atoi(argv[2]);
 	int dst = atoi(argv[3]);
-	Vehicle vehicle(1, start, dst);
+	int prevhop = atoi(argv[4]);
+	Vehicle vehicle(1, start, dst, prevhop);
 
 	while (ros::ok())
 	{
-		switch (vehicle.get_state())
+		switch (vehicle.getState())
 		{
 		case Vehicle::VS_NEW:
 		{
-			// TODO: edge computer에 따라 new_connection[i]라는 identifier를 추가해야함
-			vehicle.connect_edgecomputer(vehicle.get_currenthop());
-			vehicle.request_nexthop(argv);
-			vehicle.set_state(Vehicle::G_ADVERTISE_GPS_MSG);
-		}
-		break;
-		case Vehicle::G_ADVERTISE_GPS_MSG:
-		{
-			// TODO: vehicle에 따라 gps_info[i]라는 identifier를 추가해야함
-			vehicle.advertise_gpsinfo(10);
-			vehicle.publish_gpsinfo();
-			vehicle.set_state(Vehicle::G_REGISTER_COMMAND_SRV);
+			ROS_INFO("Vehicle enter new connection");
+			vehicle.connectEdgecomputer(vehicle.getCurrenthop());
+			vehicle.requestNexthop(argv);
+			vehicle.setState(Vehicle::VS_READYTO_COMMAND);
 			break;
 		}
-		case Vehicle::G_REGISTER_COMMAND_SRV:
+		case Vehicle::VS_READYTO_COMMAND:
 		{
-			// TODO: vehicle에 따라 command[i]라는 identifier를 추가해야함
-			vehicle.publish_gpsinfo();
-
-			// vehicle.set_command_srv_client(vehicle.get_currenthop());
-			vehicle.set_state(Vehicle::VS_COMMAND);
+			ROS_INFO("Vehicle ready to perform command");
+			vehicle.sendStateinfo();
+			vehicle.setState(Vehicle::VS_COMMAND);
 			break;
 		}
 		case Vehicle::VS_COMMAND:
 		{
-			return 0;
-			// vehicle.set_state(Vehicle::VS_REQ_NEXT_HOP);
-			// break;
+			ROS_INFO("Vehicle is performing command");
+			vehicle.advertiseCommandAction(vehicle.getCurrenthop());
+			vehicle.setState(Vehicle::VS_REQ_NEXT_HOP);
+			ros::spin();
+			break;
+		}
+		case Vehicle::VS_REQ_NEXT_HOP:
+		{
+			ROS_INFO("Vehicle is going to connect to next hop");
 		}
 		default:
 			return 0;
