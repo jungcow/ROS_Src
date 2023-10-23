@@ -37,7 +37,6 @@ private:
 
 	ros::NodeHandle nh_;
 	unordered_map<int, VehicleInfo> vehicles_infos_;
-	// vector<ros::Subscriber> vehicles_state_subscribers;
 	queue<int> vehicle_command_queue_;
 	queue<int> vehicle_command_done_queue_;
 	unordered_map<int, int> lutable_;
@@ -110,6 +109,13 @@ public:
 			ROS_ERROR("Failed to call flow_table_service");
 			return false;
 		}
+		string tmp(name_);
+		tmp = tmp + string(" LU Table : ");
+		for (int i = 1; i <= 9; i++)
+		{
+			tmp += to_string(lutable_[i]) + string(" ");
+		}
+		ROS_INFO("%s", tmp.c_str());
 		return true;
 	}
 

@@ -1,4 +1,4 @@
 int32 ecid
 ---
-int32[10] flow_table
+int32[12] flow_table
 int32 size

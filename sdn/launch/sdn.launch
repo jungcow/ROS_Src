@@ -9,6 +9,6 @@
     <node pkg="sdn" type="edge_computer" name="edge_computer7" args="7" output="screen"/>
     <node pkg="sdn" type="edge_computer" name="edge_computer8" args="8" output="screen"/>
     <node pkg="sdn" type="edge_computer" name="edge_computer9" args="9" output="screen"/>
-    <node pkg="sdn" type="vehicle" name="vehicle1" args="1 1 6 0" output="screen"/>
-    <node pkg="sdn" type="vehicle" name="vehicle2" args="2 6 7 0" output="screen"/>
+    <node pkg="sdn" type="vehicle" name="vehicle1" args="1 1 9 0" output="screen"/>
+    <node pkg="sdn" type="vehicle" name="vehicle2" args="2 9 1 0" output="screen"/>
 </launch>

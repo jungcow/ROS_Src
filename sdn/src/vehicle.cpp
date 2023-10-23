@@ -33,7 +33,7 @@ private:
 	ros::Rate loop_rate_ = 4;
 	int currhop_;
 	int prevhop_;
-	int nexthop_ = 1;
+	int nexthop_;
 	int destination_;
 	int vid_;
 	bool vehicle_command_completed = false;

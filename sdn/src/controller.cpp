@@ -138,7 +138,7 @@ bool setFlowTable(sdn::ReqFlowTable::Request &req,
 				  sdn::ReqFlowTable::Response &res)
 {
 	ROS_INFO("Get EdgeComputer id: [%d]", req.ecid);
-	res.size = 8;
+	res.size = 9;
 	int(*m)[100][100] = Controller::instance().getMap();
 	for (int i = 1; i <= 9; i++)
 		res.flow_table[i] = (*m)[req.ecid][i];
