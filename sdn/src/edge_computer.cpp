@@ -3,7 +3,6 @@
 #include <memory>
 #include <queue>
 #include <set>
-#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -14,6 +13,7 @@
 #include "sdn/NewConn.h"
 #include "sdn/ReqFlowTable.h"
 #include "sdn/StateInfo.h"
+#include "sdn/Traffic.h"
 #include "sdn/VehicleCommandAction.h"
 
 using namespace std;
@@ -43,6 +43,7 @@ private:
 	ros::ServiceServer conn_service_;
 	ros::ServiceServer vstate_service_;
 	ros::ServiceClient flowtable_service_client_;
+	ros::Publisher traffic_publisher_;
 	static EdgeComputer *instance_;
 	string name_;
 	int ecid_;
@@ -61,22 +62,22 @@ public:
 
 	static EdgeComputer &instance()
 	{
-		// 게으른 초기화
+		// lazy initialization
 		if (EdgeComputer::instance_ == NULL)
 		{
 			EdgeComputer::instance_ = new EdgeComputer();
 		}
-
 		return *instance_;
 	}
 
 	void initialize(int ecid)
 	{
 		ecid_ = ecid;
-		name_ = string("[edge_computer[") + to_string(ecid_) + string("]");
+		name_ = string("[ edge_computer[") + to_string(ecid_) + string("] ]");
 		string name = "EdgeComputer " + to_string(ecid_);
 		string conn_name = "new_connection_" + to_string(ecid_);
 		string stateinfo_name = "state_info_" + to_string(ecid_);
+		string traffic_name = "traffic_" + to_string(ecid_);
 
 		initializeCommandTable();
 
@@ -87,6 +88,7 @@ public:
 		ROS_INFO("%s Ready to get vehicle's states", name_.c_str());
 
 		// controller에게 줄 topic을 advertise
+		traffic_publisher_ = nh_.advertise<sdn::Traffic>(traffic_name, 1000);
 	}
 
 	bool initializeCommandTable(void)
@@ -100,9 +102,7 @@ public:
 		{
 			int tablesize = srv.response.size;
 			for (int i = 1; i <= tablesize; i++)
-			{
 				lutable_[i] = srv.response.flow_table[i];
-			}
 		}
 		else
 		{
@@ -115,7 +115,7 @@ public:
 		{
 			tmp += to_string(lutable_[i]) + string(" ");
 		}
-		ROS_INFO("%s", tmp.c_str());
+		// ROS_INFO("%s", tmp.c_str());
 		return true;
 	}
 
@@ -172,7 +172,7 @@ public:
 
 	string getCommand(int prevhop, int nexthop)
 	{
-		// return Command[prevhop][nexthop];
+		// return Command[prevhop][nexthop]; // TODO: command
 		return string("Left");
 	}
 
@@ -184,6 +184,16 @@ public:
 	void pushVehicleCommandDoneQueue(int vid)
 	{
 		vehicle_command_done_queue_.push(vid);
+	}
+
+	void publishTrafficTopic(void)
+	{
+		sdn::Traffic msg;
+
+		msg.vehicle_count = static_cast<int>(vehicles_infos_.size());
+		msg.timestamp = ros::Time::now();
+		msg.ecid = ecid_;
+		traffic_publisher_.publish(msg);
 	}
 
 private:
@@ -206,7 +216,7 @@ private:
 
 			goal.command = command;
 
-			ROS_INFO("%s Action goal is: [%s]", EdgeComputer::instance().getName().c_str(), command.c_str());
+			// ROS_INFO("%s Action goal is: [%s]", EdgeComputer::instance().getName().c_str(), command.c_str());
 			client_->sendGoal(goal,
 							  boost::bind(&ActionManager::doneCallback, this, _1, _2),
 							  Client::SimpleActiveCallback(),
@@ -265,7 +275,7 @@ public:
 			vehicle_command_queue_.pop();
 			VehicleInfo vinfo = vehicles_infos_[vid];
 			string str = "command_" + to_string(ecid_) + "_to_" + to_string(vid);
-			ROS_INFO("Action Command Name: [%s]", str.c_str());
+			// ROS_INFO("Action Command Name: [%s]", str.c_str());
 			sendCommand(getCommand(vinfo.prevhop, vinfo.nexthop), str, vid);
 		}
 	}
@@ -291,7 +301,7 @@ bool vstateCallback(sdn::StateInfo::Request &req, sdn::StateInfo::Response &res)
 	}
 	}
 	res.status = true;
-	ROS_INFO("%s Vehicle[%d]'s State : [%d]", EdgeComputer::instance().getName().c_str(), vid, vstate);
+	// ROS_INFO("%s Vehicle[%d]'s State : [%d]", EdgeComputer::instance().getName().c_str(), vid, vstate);
 	return true;
 }
 
@@ -306,9 +316,9 @@ bool connect(sdn::NewConn::Request &req, sdn::NewConn::Response &res)
 	{
 		// get_next_hop_from(dst);
 		// state change and request to controller
+		return false;
 	}
-	ROS_INFO("%s Get destination: %d", EdgeComputer::instance().getName().c_str(), req.dst);
-	ROS_INFO("%s Get Next Hop Ip address: %d", EdgeComputer::instance().getName().c_str(), res.next_hop_ip);
+	ROS_INFO("%s Next Hop Ip address: %d", EdgeComputer::instance().getName().c_str(), res.next_hop_ip);
 	EdgeComputer::instance().saveVehicleInfo(vid, src, dst, prevhop, res.next_hop_ip);
 	return true;
 }

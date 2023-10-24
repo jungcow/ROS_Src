@@ -1,0 +1,4 @@
+int32 cid
+int32 ecid
+---
+int32[12] table

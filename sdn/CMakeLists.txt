@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  GpsInfo.msg
+  Traffic.msg
   )
   
   ## Generate services in the 'srv' folder
@@ -32,6 +32,7 @@ add_service_files(
   DelConn.srv
   StateInfo.srv
   ReqFlowTable.srv
+  GetFlowTable.srv
   )
 
 ## Generate actions in the 'action' folder
@@ -82,11 +83,11 @@ target_link_libraries(controller
 	${catkin_LIBRARIES}
 )
 
-# add_executable(app_path_planning src/app_path_planning.cpp)
-# add_dependencies(app_path_planning ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(app_path_planning
-# 	${catkin_LIBRARIES}
-# )
+add_executable(application src/application.cpp)
+add_dependencies(application ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(application
+	${catkin_LIBRARIES}
+)
 
 # add_executable(app_traffic src/app_traffic.cpp)
 # add_dependencies(app_traffic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

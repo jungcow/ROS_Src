@@ -3,7 +3,6 @@
 
 #include <cstdlib>
 #include <memory>
-#include <sstream>
 #include <string>
 
 #include "ros/ros.h"
@@ -45,7 +44,7 @@ private:
 public:
 	Vehicle(int vid, int currhop, int dst, int prevhop) : vid_(vid), currhop_(currhop), prevhop_(prevhop), destination_(dst)
 	{
-		name_ = string("[vehicle[") + to_string(vid) + string("]");
+		name_ = string("[ vehicle[") + to_string(vid) + string("] ]");
 	}
 
 	void sleepForLoopRate(void)
@@ -124,14 +123,10 @@ public:
 
 	void connectEdgecomputer(int hop)
 	{
-		std::stringstream sstream;
-
-		sstream.str("");
-		sstream << hop;
-		string str("new_connection_");
-		str = str + sstream.str();
-		ROS_INFO("%s str: %s", name_.c_str(), str.c_str());
-		connection_client_ = nh_.serviceClient<sdn::NewConn>(str.c_str());
+		string conn_name("new_connection_");
+		conn_name = string("new_connection_") + to_string(hop);
+		ROS_INFO("%s str: %s", name_.c_str(), conn_name.c_str());
+		connection_client_ = nh_.serviceClient<sdn::NewConn>(conn_name);
 	}
 
 	bool requestNexthop(char** argv)
@@ -167,7 +162,7 @@ public:
 
 		if (vstate_client_.call(srv))
 		{
-			ROS_INFO("%s stateinfo server status: [OK]", name_.c_str());
+			// ROS_INFO("%s stateinfo server status: [OK]", name_.c_str());
 		}
 		else
 		{
@@ -181,14 +176,14 @@ public:
 	{
 		ros::Rate r(1);
 		sdn::VehicleCommandFeedback feedback;
-		ROS_INFO("%s %s : Executing, %s", name_.c_str(), action_name_.c_str(), goal->command.c_str());
+		// ROS_INFO("%s %s : Executing, %s", name_.c_str(), action_name_.c_str(), goal->command.c_str());
 
 		int count = 0;
 		while (count++ < 10)
 		{
 			feedback.vehicle_gps = "GPS data " + to_string(count);
 			feedback.vehicle_controlinfo = "Control data " + to_string(count);
-			ROS_INFO("%s publish feedback [%d]", name_.c_str(), count);
+			// ROS_INFO("%s publish feedback [%d]", name_.c_str(), count);
 			server_->publishFeedback(feedback);
 			r.sleep();
 		}
@@ -202,7 +197,7 @@ public:
 	{
 		string commandname = "command_";
 		action_name_ = commandname + to_string(hop) + "_to_" + to_string(vid_);
-		ROS_INFO("%s Vehicle Command Action Name: [%s]", name_.c_str(), action_name_.c_str());
+		// ROS_INFO("%s Vehicle Command Action Name: [%s]", name_.c_str(), action_name_.c_str());
 		server_ = make_unique<Server>(nh_,
 									  action_name_,
 									  boost::bind(&Vehicle::executeCallback, this, _1),
@@ -218,7 +213,7 @@ private:
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "vehicle1");
+	ros::init(argc, argv, "vehicle");
 	if (argc != 5)
 	{
 		ROS_INFO("usage: vehicle_id src dst prev_hop");
@@ -234,14 +229,14 @@ int main(int argc, char** argv)
 	while (ros::ok() && vehicle.getCurrhop() != vehicle.getDestination())
 	{
 		ROS_INFO(
-			"Vehicle Created: [vid: %d], [prevhop_: %d],[currhop_: %d], [nexthop_: %d],[src: %d], [dest: %d] ",
-			vid,
+			"%s [vid: %d], [prevhop_: %d],[currhop_: %d], [nexthop_: %d],[src: %d], [dest: %d] ",
+			vehicle.getName().c_str(), vid,
 			vehicle.getPrevhop(), vehicle.getCurrhop(), vehicle.getNexthop(), start, dst);
 		switch (vehicle.getState())
 		{
 		case Vehicle::VS_NEW:
 		{
-			ROS_INFO("%s Vehicle enter new connection", vehicle.getName().c_str());
+			// ROS_INFO("%s Vehicle enter new connection", vehicle.getName().c_str());
 			vehicle.connectEdgecomputer(vehicle.getCurrhop());
 			vehicle.requestNexthop(argv);
 			vehicle.setState(Vehicle::VS_READYTO_COMMAND);
@@ -249,14 +244,14 @@ int main(int argc, char** argv)
 		}
 		case Vehicle::VS_READYTO_COMMAND:
 		{
-			ROS_INFO("%s Vehicle ready to perform command", vehicle.getName().c_str());
+			// ROS_INFO("%s Vehicle ready to perform command", vehicle.getName().c_str());
 			vehicle.sendStateinfo();
 			vehicle.setState(Vehicle::VS_COMMAND);
 			break;
 		}
 		case Vehicle::VS_COMMAND:
 		{
-			ROS_INFO("%s Vehicle is performing command", vehicle.getName().c_str());
+			// ROS_INFO("%s Vehicle is performing command", vehicle.getName().c_str());
 			if (!vehicle.isVehicleCommandRunning())
 			{
 				vehicle.advertiseCommandAction(vehicle.getCurrhop());
@@ -273,7 +268,7 @@ int main(int argc, char** argv)
 		}
 		case Vehicle::VS_REQ_NEXT_HOP:
 		{
-			ROS_INFO("%s Vehicle is going to connect to next hop", vehicle.getName().c_str());
+			ROS_INFO("%s Vehicle update connection with next hop", vehicle.getName().c_str());
 			vehicle.setPrevhop(vehicle.getCurrhop());
 			vehicle.setCurrhop(vehicle.getNexthop());
 			vehicle.setState(Vehicle::VS_NEW);

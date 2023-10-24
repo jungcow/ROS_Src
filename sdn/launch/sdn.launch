@@ -1,4 +1,5 @@
 <launch>
+    <node pkg="sdn" type="application" name="application" output="screen"/>
     <node pkg="sdn" type="controller" name="controller" output="screen"/>
     <node pkg="sdn" type="edge_computer" name="edge_computer1" args="1" output="screen"/>
     <node pkg="sdn" type="edge_computer" name="edge_computer2" args="2" output="screen"/>
