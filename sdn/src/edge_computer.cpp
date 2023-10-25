@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "ros/ros.h"
-#include "sdn/GpsInfo.h"
 #include "sdn/NewConn.h"
 #include "sdn/ReqFlowTable.h"
 #include "sdn/StateInfo.h"
@@ -40,6 +39,7 @@ private:
 	queue<int> vehicle_command_queue_;
 	queue<int> vehicle_command_done_queue_;
 	unordered_map<int, int> lutable_;
+	unordered_map<int, unordered_map<int, string> > command_map_;
 	ros::ServiceServer conn_service_;
 	ros::ServiceServer vstate_service_;
 	ros::ServiceClient flowtable_service_client_;
@@ -109,6 +109,16 @@ public:
 			ROS_ERROR("Failed to call flow_table_service");
 			return false;
 		}
+
+		// string command[] = {"Go Forward", "Turn Left", "Turn Right", "Stop"};
+
+		// command_map_[16][1] = command[3]; // stop
+		// command_map_[16][2] = command[0]; // stop
+		// command_map_[16][4] = command[2]; // stop
+		// command_map_[12][1] = command[3]; // stop
+		// command_map_[12][4] = command[3]; // stop
+		// command_map_[12][1] = command[3]; // stop
+
 		string tmp(name_);
 		tmp = tmp + string(" LU Table : ");
 		for (int i = 1; i <= 9; i++)
@@ -172,7 +182,7 @@ public:
 
 	string getCommand(int prevhop, int nexthop)
 	{
-		// return Command[prevhop][nexthop]; // TODO: command
+		// return command_map_[prevhop][nexthop]; // TODO:
 		return string("Left");
 	}
 

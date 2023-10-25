@@ -6,7 +6,6 @@
 #include <string>
 
 #include "ros/ros.h"
-#include "sdn/GpsInfo.h"
 #include "sdn/NewConn.h"
 #include "sdn/StateInfo.h"
 #include "sdn/VehicleCommandAction.h"
